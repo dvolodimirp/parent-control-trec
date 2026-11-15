@@ -48,7 +48,7 @@ object TrafficTracker {
 
     private fun sumForType(nsm: NetworkStatsManager, networkType: Int, subscriberId: String?, uid: Int, start: Long, end: Long): Long {
         return try {
-            val stats = nsm.querySummaryForUid(networkType, subscriberId, start, end, uid)
+            val stats = nsm.queryDetailsForUid(networkType, subscriberId, start, end, uid)
             var sum = 0L
             val bucket = NetworkStats.Bucket()
             while (stats.hasNextBucket()) {
