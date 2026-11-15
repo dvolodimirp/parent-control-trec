@@ -1,0 +1,48 @@
+name: Build APK
+
+on:
+  push:
+    paths: ["android/**", ".github/workflows/android-build.yml"]
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check repo layout
+        run: |
+          echo "Repo root contents:"
+          ls -la
+          if [ ! -d "android" ]; then
+            echo "::error::'android' folder not found at repo root. Did you commit the extracted project files (not the .zip)?"
+            exit 1
+          fi
+
+      - name: JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Accept SDK licenses & install platform/build-tools
+        run: |
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses >/dev/null || true
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
+            "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+
+      - name: Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.7"
+
+      - name: Build debug APK
+        working-directory: android
+        run: gradle assembleDebug --no-daemon
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: parent-control-apk
+          path: android/app/build/outputs/apk/debug/*.apk
