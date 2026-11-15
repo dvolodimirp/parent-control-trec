@@ -1,0 +1,744 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Маяк — батьківський нагляд</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+:root{
+  --ink:#1C2630; --ink-soft:#2A3744; --line-on-ink:rgba(255,255,255,.12);
+  --text-on-ink:#EDEAE2; --text-dim-on-ink:#92A0AA;
+  --paper:#F6F4EF; --line:#E3DED3; --panel:#FFFFFF;
+  --accent:#2F6F64; --accent-dim:#DCE8E4; --accent-text:#1F4D45;
+  --amber:#AD7B33; --amber-dim:#F3E3C9;
+  --danger:#B3452E; --danger-dim:#F4DCD4;
+  --radius:10px;
+  --serif:'Fraunces',Georgia,serif; --sans:'Inter',system-ui,-apple-system,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:var(--sans);background:var(--paper);color:var(--ink);font-size:14.5px;line-height:1.5}
+button{font-family:var(--sans);font-size:14px;cursor:pointer}
+input,select{font-family:var(--sans);font-size:14px}
+h1,h2,h3{font-family:var(--serif);font-weight:600;margin:0}
+.muted{color:#8A8375}
+.on-ink .muted{color:var(--text-dim-on-ink)}
+
+.shell{display:flex;min-height:100vh}
+.sidebar{width:264px;flex-shrink:0;background:var(--ink);color:var(--text-on-ink);display:flex;flex-direction:column;padding:26px 18px}
+.brand{display:flex;align-items:center;gap:10px;padding:0 6px 22px}
+.brand svg{flex-shrink:0}
+.brand .name{font-family:var(--serif);font-size:21px;line-height:1.1}
+.brand .tag{font-size:11.5px;color:var(--text-dim-on-ink);margin-top:1px}
+.navlabel{font-size:12px;color:var(--text-dim-on-ink);padding:14px 10px 6px}
+.devrow{display:flex;align-items:center;gap:9px;width:100%;text-align:left;background:none;border:none;color:var(--text-on-ink);padding:9px 10px;border-radius:8px;margin:1px 0}
+.devrow:hover{background:var(--line-on-ink)}
+.devrow.active{background:var(--line-on-ink)}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;background:#5B7A5A}
+.dot.off{background:#5A6670}
+.dot.warn{background:var(--danger)}
+.devrow .meta{flex:1;min-width:0}
+.devrow .dname{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.devrow .dstate{font-size:11.5px;color:var(--text-dim-on-ink)}
+.addrow{display:flex;align-items:center;gap:9px;width:100%;text-align:left;background:none;border:none;color:var(--text-dim-on-ink);padding:9px 10px;border-radius:8px}
+.addrow:hover{color:var(--text-on-ink);background:var(--line-on-ink)}
+.navitem{display:block;width:100%;text-align:left;background:none;border:none;color:var(--text-on-ink);padding:9px 10px;border-radius:8px;font-size:14.5px}
+.navitem:hover,.navitem.active{background:var(--line-on-ink)}
+.sidebar hr{border:none;border-top:1px solid var(--line-on-ink);margin:14px 2px}
+.spacer{flex:1}
+
+.main{flex:1;padding:42px 52px;max-width:1000px}
+.pagehead{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:26px}
+.pill{font-size:12px;padding:3px 9px;border-radius:999px;background:var(--accent-dim);color:var(--accent-text)}
+.pill.danger{background:var(--danger-dim);color:var(--danger)}
+.pill.amber{background:var(--amber-dim);color:var(--amber)}
+.pill.off{background:#ECE9E2;color:#8A8375}
+
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:22px 24px;margin-bottom:22px}
+.cardtitle{font-size:13px;color:#8A8375;margin-bottom:14px}
+
+.btn{border:1px solid #CFC8B8;background:var(--panel);border-radius:8px;padding:8px 14px;margin:0 8px 8px 0;color:var(--ink)}
+.btn:hover{background:var(--accent-dim);border-color:var(--accent)}
+.btn.primary{background:var(--ink);color:var(--text-on-ink);border-color:var(--ink)}
+.btn.primary:hover{background:var(--ink-soft)}
+.btn.danger{color:var(--danger);border-color:#E4C3BA}
+.btn.danger:hover{background:var(--danger-dim)}
+.btn.ghost{border-color:transparent;color:#8A8375}
+.btn.ghost:hover{background:#ECE9E2;color:var(--ink)}
+
+.today{display:flex;align-items:center;gap:26px}
+.today .num{font-family:var(--serif);font-size:30px}
+.today .lbl{font-size:13px;color:#8A8375;margin-top:2px}
+
+.bars{display:flex;align-items:flex-end;gap:10px;height:90px;margin-top:4px}
+.bars .col{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px}
+.bars .bar{width:100%;max-width:30px;background:var(--accent);border-radius:4px 4px 0 0;min-height:2px}
+.bars .daylbl{font-size:11px;color:#8A8375}
+
+.applist .row{display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px solid var(--line)}
+.applist .row:first-child{border-top:none}
+.applist .aname{width:170px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.applist .track{flex:1;background:#EFEBE2;border-radius:4px;height:7px;overflow:hidden}
+.applist .fill{height:100%;background:var(--accent);border-radius:4px}
+.applist .mins{width:92px;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;color:#8A8375;font-size:13px}
+.applist .limitwrap{display:flex;align-items:center;gap:4px;flex-shrink:0}
+.applist .limitwrap input{width:48px;border:1px solid var(--line);border-radius:6px;padding:4px 6px;font-size:12.5px;text-align:right}
+.applist .limitwrap .unit{font-size:11.5px;color:#8A8375;white-space:nowrap}
+
+/* Note: this toggle's inner spans use .strack/.sknob (NOT .track) on purpose —
+   .applist .track is a different, unrelated rule (the usage bar) and shares the same
+   specificity, so naming them the same here caused a cascade collision that broke the
+   switch's layout (it rendered as a squashed sliver instead of a pill). */
+.switch{position:relative;width:36px;height:21px;flex-shrink:0}
+.switch input{opacity:0;width:0;height:0}
+.switch .strack{position:absolute;inset:0;background:#D7D1C3;border-radius:999px;transition:.15s}
+.switch .sknob{position:absolute;width:17px;height:17px;left:2px;top:2px;background:#fff;border-radius:50%;transition:.15s}
+.switch input:checked + .strack{background:var(--danger)}
+.switch input:checked ~ .sknob{transform:translateX(15px)}
+
+.empty{padding:60px 10px;text-align:center;color:#8A8375}
+.empty h2{color:var(--ink);margin-bottom:8px}
+
+.tpl{border-top:1px solid var(--line)}
+.tpl:first-child{border-top:none}
+.tplhead{display:flex;align-items:center;gap:10px;padding:14px 2px;cursor:pointer}
+.tplhead input{font-family:var(--serif);font-size:16px;border:none;background:none;flex:1;color:var(--ink)}
+.tplhead input:focus{outline:none;border-bottom:1px solid var(--accent)}
+.chev{transition:.15s;color:#8A8375;flex-shrink:0}
+.tpl.open .chev{transform:rotate(90deg)}
+.tplbody{display:none;padding:4px 2px 20px}
+.tpl.open .tplbody{display:block}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:12.5px;color:#8A8375;margin-bottom:5px}
+.field input[type=number],.field input[type=time],.field input[type=text]{border:1px solid var(--line);border-radius:7px;padding:7px 10px;background:#FBFAF7;width:100%;max-width:260px}
+.field .hint{font-size:12px;color:#8A8375;margin-top:4px}
+.row2{display:flex;gap:18px;flex-wrap:wrap}
+.chips{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:8px}
+.chip{display:flex;align-items:center;gap:6px;background:var(--accent-dim);color:var(--accent-text);border-radius:999px;padding:4px 6px 4px 12px;font-size:13px}
+.chip button{background:none;border:none;color:var(--accent-text);opacity:.6;font-size:15px;line-height:1;padding:0 4px}
+.chip button:hover{opacity:1}
+.limitrow{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.limitrow input[type=number]{width:90px}
+
+dialog{border:none;border-radius:var(--radius);padding:0;box-shadow:0 20px 50px rgba(0,0,0,.22)}
+dialog::backdrop{background:rgba(28,38,48,.45)}
+.dlg{padding:26px 28px;width:340px}
+.dlg h3{margin-bottom:14px}
+.dlg .code{font-family:var(--serif);font-size:38px;letter-spacing:3px;text-align:center;background:var(--accent-dim);color:var(--accent-text);border-radius:8px;padding:16px 0;margin:14px 0}
+.dlg input[type=text],.dlg input[type=password]{width:100%;border:1px solid var(--line);border-radius:7px;padding:9px 11px;margin-bottom:12px}
+.dlg .actions{display:flex;justify-content:flex-end;gap:8px;margin-top:6px}
+
+.loginwrap{min-height:100vh;display:flex;align-items:center;justify-content:center}
+.loginbox{width:320px;text-align:center}
+.loginbox .name{font-family:var(--serif);font-size:28px;margin-bottom:4px}
+.loginbox .tag{color:#8A8375;margin-bottom:26px;font-size:13.5px}
+.loginbox input{width:100%;border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:12px;background:var(--panel)}
+.loginbox .err{color:var(--danger);font-size:13px;min-height:18px;margin-top:-4px;margin-bottom:8px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+const LOGO = `<svg width="30" height="30" viewBox="0 0 30 30" fill="none">
+<path d="M13 3h4l2 14h-8l2-14z" fill="#EDEAE2"/>
+<rect x="11" y="15" width="8" height="10" fill="#92A0AA"/>
+<path d="M15 1v3M9 7l2.5 1.5M21 7l-2.5 1.5" stroke="#AD7B33" stroke-width="1.6" stroke-linecap="round"/>
+<rect x="9" y="25" width="12" height="2.4" rx="1.2" fill="#2F6F64"/>
+</svg>`;
+const e = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const A = document.getElementById("app");
+const today = () => { const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); };
+const ago = t => !t ? "ще не підключався" : (s => s<90?"онлайн":s<3600?Math.round(s/60)+" хв тому":s<86400?Math.round(s/3600)+" год тому":Math.round(s/86400)+" дн тому")(Date.now()/1000-t);
+const hhmm = m => (m>=60 ? (Math.floor(m/60)+" год "+(m%60?(m%60)+" хв":"")) : m+" хв").trim();
+const fmtBytes = b => {
+  if(!b) return "0 МБ";
+  if(b < 1024*1024) return (b/1024).toFixed(0)+" КБ";
+  if(b < 1024*1024*1024) return (b/1024/1024).toFixed(1)+" МБ";
+  return (b/1024/1024/1024).toFixed(2)+" ГБ";
+};
+
+let KEY = localStorage.getItem("pc_key") || "";
+async function api(method, path, body){
+  const r = await fetch("/api"+path, {method, headers:{"X-Admin-Key":KEY,"Content-Type":"application/json"}, body: body?JSON.stringify(body):undefined});
+  if(r.status===401){ localStorage.removeItem("pc_key"); KEY=""; renderLogin("Невірний ключ доступу."); throw new Error("unauthorized"); }
+  return r.json();
+}
+
+function dialog(innerHTML){
+  const d = document.createElement("dialog");
+  d.innerHTML = `<div class="dlg">${innerHTML}</div>`;
+  document.body.appendChild(d);
+  d.addEventListener("close", ()=> d.remove());
+  d.showModal();
+  return d;
+}
+function promptDialog(title, label, value=""){
+  return new Promise(resolve=>{
+    const d = dialog(`<h3>${e(title)}</h3>
+      <input type="text" id="pv" value="${e(value)}">
+      <div class="actions"><button class="btn ghost" id="pc">Скасувати</button><button class="btn primary" id="po">Зберегти</button></div>`);
+    d.querySelector("#pc").onclick = ()=>{ d.close(); resolve(null); };
+    d.querySelector("#po").onclick = ()=>{ const v=d.querySelector("#pv").value.trim(); d.close(); resolve(v||null); };
+  });
+}
+function confirmDialog(title, text, danger=true){
+  return new Promise(resolve=>{
+    const d = dialog(`<h3>${e(title)}</h3><p class="muted">${e(text)}</p>
+      <div class="actions"><button class="btn ghost" id="cc">Скасувати</button><button class="btn ${danger?'danger':'primary'}" id="co">Так</button></div>`);
+    d.querySelector("#cc").onclick = ()=>{ d.close(); resolve(false); };
+    d.querySelector("#co").onclick = ()=>{ d.close(); resolve(true); };
+  });
+}
+
+const DOMAIN_PRESETS = {
+  "Соцмережі": ["instagram.com","tiktok.com","facebook.com","x.com","twitter.com","snapchat.com","reddit.com","threads.net"],
+  "Відео / стрімінг": ["youtube.com","twitch.tv","netflix.com"],
+  "Ігри": ["roblox.com","store.steampowered.com","epicgames.com"],
+};
+
+/** Small "+ Категорія" buttons above a domain chip input; clicking merges that
+    preset's domains into the chip list (no duplicates) and calls onAdd to persist. */
+function presetButtons(container, chipApi, onAdd){
+  container.innerHTML = Object.keys(DOMAIN_PRESETS).map(name=>
+    `<button type="button" class="btn ghost" data-preset="${e(name)}" style="margin:0 8px 8px 0">+ ${e(name)}</button>`).join("");
+  container.querySelectorAll("button").forEach(b=> b.onclick = ()=>{
+    chipApi.add(DOMAIN_PRESETS[b.dataset.preset]);
+    onAdd();
+  });
+}
+
+function chipInput(container, initial, knownApps){
+  let values = [...initial];
+  const dlId = "dl_"+Math.random().toString(36).slice(2);
+  container.innerHTML = `
+    <div class="chips"></div>
+    <input type="text" list="${dlId}" placeholder="назва або пакет додатку, Enter">
+    <datalist id="${dlId}">${knownApps.map(a=>`<option value="${e(a.label)}" data-pkg="${e(a.pkg)}">`).join("")}</datalist>`;
+  const chips = container.querySelector(".chips");
+  const inp = container.querySelector("input");
+  function label(pkg){ const f = knownApps.find(a=>a.pkg===pkg); return f ? f.label : pkg; }
+  function draw(){
+    chips.innerHTML = values.map(v=>`<span class="chip">${e(label(v))}<button type="button" data-v="${e(v)}">×</button></span>`).join("");
+    chips.querySelectorAll("button").forEach(b=> b.onclick = ()=>{ values = values.filter(v=>v!==b.dataset.v); draw(); });
+  }
+  inp.addEventListener("keydown", ev=>{
+    if(ev.key!=="Enter") return;
+    ev.preventDefault();
+    const raw = inp.value.trim(); if(!raw) return;
+    const match = knownApps.find(a=>a.label.toLowerCase()===raw.toLowerCase());
+    const pkg = match ? match.pkg : raw;
+    if(!values.includes(pkg)) values.push(pkg);
+    inp.value=""; draw();
+  });
+  draw();
+  return {
+    get: ()=>values,
+    add: (list)=>{ list.forEach(v=>{ if(!values.includes(v)) values.push(v); }); draw(); }
+  };
+}
+
+function renderLogin(err){
+  A.innerHTML = `<div class="loginwrap"><div class="loginbox">
+    <div class="name">Маяк</div>
+    <div class="tag">батьківський нагляд за пристроєм</div>
+    <input type="password" id="lk" placeholder="Ключ доступу (ADMIN_KEY)">
+    <div class="err">${err?e(err):""}</div>
+    <button class="btn primary" id="lb" style="width:100%">Увійти</button>
+  </div></div>`;
+  const go = ()=>{ const v=document.getElementById("lk").value.trim(); if(!v) return; KEY=v; localStorage.setItem("pc_key",v); boot(); };
+  document.getElementById("lb").onclick = go;
+  document.getElementById("lk").addEventListener("keydown", ev=>{ if(ev.key==="Enter") go(); });
+  document.getElementById("lk").focus();
+}
+
+let STATE = { devices: [], templates: [], knownApps: [], view: {type:"empty"} };
+
+async function boot(){
+  if(!KEY){ renderLogin(); return; }
+  try{
+    const [devices, templates, knownApps] = await Promise.all([api("GET","/devices"), api("GET","/templates"), api("GET","/known-apps")]);
+    STATE = { devices, templates, knownApps, view: STATE.view.type==="empty" ? (devices[0]?{type:"device",id:devices[0].id}:{type:"templates"}) : STATE.view };
+    renderShell();
+    if(STATE.view.type==="device") openDevice(STATE.view.id); else openTemplates();
+  }catch(err){ if(err.message!=="unauthorized") renderLogin(); }
+}
+
+function renderShell(){
+  const d = STATE.devices;
+  A.innerHTML = `<div class="shell">
+    <div class="sidebar on-ink">
+      <div class="brand">${LOGO}<div><div class="name">Маяк</div><div class="tag">батьківський нагляд</div></div></div>
+      <div class="navlabel">Пристрої</div>
+      <div id="devlist"></div>
+      <button class="addrow" id="adddev">+ Додати пристрій</button>
+      <hr>
+      <button class="navitem" id="navtpl">Шаблони доступу</button>
+      <button class="navitem" id="navnet">Фільтр сайтів</button>
+      <button class="navitem" id="navupd">Оновлення додатку</button>
+      <div class="spacer"></div>
+      <button class="navitem" id="logout" style="opacity:.55">Вийти</button>
+    </div>
+    <div class="main" id="main"></div>
+  </div>`;
+  const list = document.getElementById("devlist");
+  list.innerHTML = d.map(x=>{
+    const dot = !x.admin_active ? "warn" : (Date.now()/1000 - (x.last_seen||0) > 90 ? "off" : "");
+    return `<button class="devrow ${STATE.view.type==='device'&&STATE.view.id===x.id?'active':''}" data-id="${x.id}">
+      <span class="dot ${dot}"></span>
+      <span class="meta"><div class="dname">${e(x.name)}</div><div class="dstate">${x.locked?'заблоковано · ':''}${ago(x.last_seen)}</div></span>
+    </button>`;
+  }).join("") || `<div class="muted" style="padding:8px 10px;font-size:13px">ще немає</div>`;
+  list.querySelectorAll(".devrow").forEach(b=> b.onclick = ()=> openDevice(+b.dataset.id));
+  document.getElementById("adddev").onclick = addDevice;
+  document.getElementById("navtpl").onclick = openTemplates;
+  document.getElementById("navtpl").classList.toggle("active", STATE.view.type==="templates");
+  document.getElementById("navnet").onclick = openNetFilter;
+  document.getElementById("navnet").classList.toggle("active", STATE.view.type==="netfilter");
+  document.getElementById("navupd").onclick = openUpdate;
+  document.getElementById("navupd").classList.toggle("active", STATE.view.type==="update");
+  document.getElementById("logout").onclick = ()=>{ localStorage.removeItem("pc_key"); KEY=""; renderLogin(); };
+}
+
+async function addDevice(){
+  const r = await api("POST","/pair-code",{});
+  const d = dialog(`<h3>Новий пристрій</h3>
+    <p class="muted">Введіть цей код у додатку на телефоні дитини. Код діє 10 хвилин.</p>
+    <div class="code">${r.code}</div>
+    <div class="actions"><button class="btn primary" id="done">Готово</button></div>`);
+  d.querySelector("#done").onclick = async ()=>{ d.close(); await boot(); };
+}
+
+const MONTHS_GEN = ["січня","лютого","березня","квітня","травня","червня","липня","серпня","вересня","жовтня","листопада","грудня"];
+const MONTHS_NOM = ["Січень","Лютий","Березень","Квітень","Травень","Червень","Липень","Серпень","Вересень","Жовтень","Листопад","Грудень"];
+function periodLabel(rep){
+  const s = new Date(rep.start+"T00:00:00"), en = new Date(rep.end+"T00:00:00");
+  if(rep.period==="day") return `${s.getDate()} ${MONTHS_GEN[s.getMonth()]} ${s.getFullYear()}`;
+  if(rep.period==="month") return `${MONTHS_NOM[s.getMonth()]} ${s.getFullYear()}`;
+  // week
+  if(s.getMonth()===en.getMonth()) return `${s.getDate()}–${en.getDate()} ${MONTHS_GEN[s.getMonth()]} ${s.getFullYear()}`;
+  return `${s.getDate()} ${MONTHS_GEN[s.getMonth()]} – ${en.getDate()} ${MONTHS_GEN[en.getMonth()]} ${s.getFullYear()}`;
+}
+
+async function openDevice(id){
+  STATE.view = {type:"device", id};
+  STATE.report = {period:"day", offset:0};
+  renderShell();
+  const main = document.getElementById("main");
+  main.innerHTML = `<div class="muted">Завантаження…</div>`;
+  const d = await api("GET", `/devices/${id}`);
+  await renderDevice(d);
+}
+
+async function renderDevice(d){
+  const main = document.getElementById("main");
+  const tplName = (STATE.templates.find(t=>t.id===d.template_id)||{}).name || "—";
+  const quiet = d.policy.quiet_start && d.policy.quiet_end;
+  const rp = STATE.report;
+  const [rep, loc] = await Promise.all([
+    api("GET", `/devices/${d.id}/report?period=${rp.period}&offset=${rp.offset}`),
+    api("GET", `/devices/${d.id}/locations?period=${rp.period}&offset=${rp.offset}`)
+  ]);
+
+  const limit = d.policy.daily_limit||0;
+  const pct = (rep.is_today && limit) ? Math.min(100, Math.round(rep.total_minutes/limit*100)) : 0;
+
+  const maxDay = Math.max(1, ...rep.daily.map(x=>x.minutes));
+  const dayNum = iso => new Date(iso+"T00:00:00").getDate();
+  const barsHtml = rep.daily.map(x=>
+    `<div class="col"><div class="bar" style="height:${Math.max(3,x.minutes/maxDay*74)}px" title="${x.minutes} хв"></div><div class="daylbl">${dayNum(x.day)}</div></div>`
+  ).join("");
+
+  // On "today" we show every app the device knows about (even ones with 0 minutes yet,
+  // so a parent can block something pre-emptively) with live controls. For any other
+  // period it's just history, read-only, from what was actually used.
+  let appRows;
+  if(rep.is_today){
+    const byPkg = Object.fromEntries(rep.apps.map(a=>[a.pkg,{minutes:a.minutes,bytes:a.bytes}]));
+    const list = d.apps.map(a=>({pkg:a.pkg, label:a.label, minutes:(byPkg[a.pkg]||{}).minutes||0, bytes:(byPkg[a.pkg]||{}).bytes||0}))
+      .sort((a,b)=>b.minutes-a.minutes);
+    const maxApp = Math.max(1, ...list.map(a=>a.minutes));
+    appRows = list.map(a=>`
+      <div class="row">
+        <span class="aname">${e(a.label)}</span>
+        <span class="track"><span class="fill" style="width:${a.minutes/maxApp*100}%"></span></span>
+        <span class="mins">${hhmm(a.minutes)}</span>
+        <span class="mins" style="width:64px">${fmtBytes(a.bytes)}</span>
+        <span class="limitwrap" title="Особистий ліміт для цього додатка на цьому пристрої">
+          <input type="number" min="0" class="applimit" data-pkg="${e(a.pkg)}" value="${d.app_limits[a.pkg]||''}">
+          <span class="unit">хв/день</span>
+        </span>
+        <label class="switch" title="Заблокувати повністю">
+          <input type="checkbox" ${d.blocked.includes(a.pkg)?"checked":""} data-pkg="${e(a.pkg)}">
+          <span class="strack"></span><span class="sknob"></span>
+        </label>
+      </div>`).join("") || `<div class="muted" style="padding:10px 0">Ще немає даних — чекаємо першої синхронізації з пристрою.</div>`;
+  } else {
+    const maxApp = Math.max(1, ...rep.apps.map(a=>a.minutes));
+    appRows = rep.apps.map(a=>`
+      <div class="row">
+        <span class="aname">${e(a.label)}</span>
+        <span class="track"><span class="fill" style="width:${a.minutes/maxApp*100}%"></span></span>
+        <span class="mins">${hhmm(a.minutes)}</span>
+        <span class="mins" style="width:64px">${fmtBytes(a.bytes)}</span>
+      </div>`).join("") || `<div class="muted" style="padding:10px 0">За цей період даних немає.</div>`;
+  }
+
+  main.innerHTML = `
+    <div class="pagehead">
+      <h1>${e(d.name)}</h1>
+      ${d.locked?'<span class="pill danger">заблоковано батьками</span>':''}
+      ${!d.admin_active?'<span class="pill danger">захист знято на пристрої</span>':''}
+      ${quiet?`<span class="pill amber">тихі години ${d.policy.quiet_start}–${d.policy.quiet_end}</span>`:''}
+      <span class="pill off">${e(tplName)}</span>
+    </div>
+
+    <div class="card">
+      <div class="cardtitle">Дії</div>
+      <button class="btn ${d.locked?'primary':''}" id="toglock">${d.locked?"🔓 Розблокувати пристрій":"🔒 Заблокувати пристрій"}</button>
+      <button class="btn" id="flashon">🔦 Увімкнути ліхтарик</button>
+      <button class="btn" id="flashoff">Вимкнути ліхтарик</button>
+      <button class="btn" id="alarm">🔔 Подати сигнал</button>
+      <select class="btn" id="tplsel" style="appearance:auto">${STATE.templates.map(t=>`<option value="${t.id}" ${t.id===d.template_id?"selected":""}>${e(t.name)}</option>`).join("")}</select>
+      <button class="btn ghost" id="rename">Перейменувати</button>
+      <button class="btn danger" id="remove">Видалити пристрій</button>
+      ${d.last_cmd_result ? `<div class="muted" style="margin-top:8px;font-size:12.5px">Останній результат команди: ${e(d.last_cmd_result)}</div>` : ''}
+      ${d.update_status ? `<div class="muted" style="margin-top:4px;font-size:12.5px">Стан оновлення додатку: ${e(d.update_status)}</div>` : ''}
+    </div>
+
+    <div class="card">
+      <div class="cardtitle">Місцезнаходження — маршрут за обраний вище період (${periodLabel(rep)})</div>
+      ${d.location ? `<div style="margin-bottom:10px">Востаннє відомо: ${ago(d.location.at)}, точність ±${Math.round(d.location.accuracy)} м
+        · <a href="https://www.google.com/maps?q=${d.location.lat},${d.location.lon}" target="_blank" rel="noopener">відкрити на Google Maps</a></div>`
+        : `<div class="muted" style="margin-bottom:10px">Остання позиція ще невідома — або не надано дозвіл геолокації на пристрої (пункт 5 у додатку), або жоден додаток на пристрої ще не визначав розташування.</div>`}
+      ${loc.points.length ? `<div id="locmap_${d.id}" style="height:320px;border-radius:8px;overflow:hidden"></div>`
+        : `<div class="muted">За цей період точок немає.</div>`}
+      <p class="muted" style="font-size:12.5px;margin-top:10px">Точки — останнє відоме системі розташування (без активного запиту GPS, щоб менше садити батарею), не частіше однієї на 5 хв. Історія зберігається 30 днів.</p>
+    </div>
+
+    <div class="card">
+      <div class="cardtitle">Звітність</div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+        <div>
+          <button class="btn ${rp.period==='day'?'primary':''}" id="perday" style="margin:0 6px 0 0">День</button>
+          <button class="btn ${rp.period==='week'?'primary':''}" id="perweek" style="margin:0 6px 0 0">Тиждень</button>
+          <button class="btn ${rp.period==='month'?'primary':''}" id="permonth" style="margin:0">Місяць</button>
+        </div>
+        <div style="flex:1"></div>
+        <button class="btn ghost" id="pprev" style="margin:0">←</button>
+        <div style="min-width:170px;text-align:center">${periodLabel(rep)}</div>
+        <button class="btn ghost" id="pnext" style="margin:0" ${rep.can_go_forward?'':'disabled'}>→</button>
+      </div>
+      <div class="today">
+        ${(rep.is_today && limit) ? ringSvg(pct) : ""}
+        <div><div class="num">${hhmm(rep.total_minutes)}</div><div class="lbl">${(rep.is_today && limit)?`з денного ліміту ${hhmm(limit)}`:"за цей період"}</div>
+        <div class="lbl" style="margin-top:4px">${fmtBytes(rep.total_bytes)} трафіку за період</div></div>
+      </div>
+      <div class="bars" style="margin-top:18px">${barsHtml}</div>
+    </div>
+
+    <div class="card applist">
+      <div class="cardtitle">${rep.is_today ? "Додатки сьогодні (час і трафік) — перемикач праворуч блокує додаток повністю" : "Додатки за цей період (час і трафік)"}</div>
+      ${appRows}
+    </div>
+
+  `;
+
+  document.getElementById("toglock").onclick = async ()=>{ await api("PUT",`/devices/${d.id}`,{locked:!d.locked}); openDevice(d.id); };
+  document.getElementById("flashon").onclick = async ()=>{ await api("POST",`/devices/${d.id}/command`,{cmd:"flashlight_on"}); toast("Виконається протягом ~20с"); };
+  document.getElementById("flashoff").onclick = async ()=>{ await api("POST",`/devices/${d.id}/command`,{cmd:"flashlight_off"}); toast("Виконається протягом ~20с"); };
+  document.getElementById("alarm").onclick = async ()=>{ await api("POST",`/devices/${d.id}/command`,{cmd:"alarm"}); toast("Сигнал пролунає протягом ~20с"); };
+  document.getElementById("tplsel").onchange = async (ev)=>{ await api("PUT",`/devices/${d.id}`,{template_id:+ev.target.value}); openDevice(d.id); };
+  document.getElementById("rename").onclick = async ()=>{ const n = await promptDialog("Нова назва пристрою","",d.name); if(n){ await api("PUT",`/devices/${d.id}`,{name:n}); boot(); } };
+  document.getElementById("remove").onclick = async ()=>{ if(await confirmDialog("Видалити пристрій?","Статистика цього пристрою теж буде видалена.")){ await api("DELETE",`/devices/${d.id}`); STATE.view={type:"empty"}; boot(); } };
+
+  document.getElementById("perday").onclick = ()=>{ STATE.report = {period:"day", offset:0}; renderDevice(d); };
+  document.getElementById("perweek").onclick = ()=>{ STATE.report = {period:"week", offset:0}; renderDevice(d); };
+  document.getElementById("permonth").onclick = ()=>{ STATE.report = {period:"month", offset:0}; renderDevice(d); };
+  document.getElementById("pprev").onclick = ()=>{ STATE.report = {...rp, offset: rp.offset+1}; renderDevice(d); };
+  document.getElementById("pnext").onclick = ()=>{ if(rep.can_go_forward){ STATE.report = {...rp, offset: rp.offset-1}; renderDevice(d); } };
+
+  if(loc.points.length){
+    const pts = loc.points.map(p=>[p.lat,p.lon]);
+    const map = L.map(`locmap_${d.id}`);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap', maxZoom: 19
+    }).addTo(map);
+    L.polyline(pts, {color:'#2F6F64', weight:3}).addTo(map);
+    L.circleMarker(pts[0], {radius:6, color:'#AD7B33', fillColor:'#AD7B33', fillOpacity:1}).addTo(map)
+      .bindTooltip("Початок періоду");
+    L.circleMarker(pts[pts.length-1], {radius:7, color:'#B3452E', fillColor:'#B3452E', fillOpacity:1}).addTo(map)
+      .bindTooltip("Останнє відоме місце", {permanent:false});
+    map.fitBounds(pts.length>1 ? pts : [pts[0], pts[0]], {maxZoom:15, padding:[20,20]});
+  }
+
+  if(rep.is_today){
+    main.querySelectorAll('.applist input[type=checkbox]').forEach(cb=>{
+      cb.onchange = async ()=>{
+        const set = new Set(d.blocked);
+        cb.checked ? set.add(cb.dataset.pkg) : set.delete(cb.dataset.pkg);
+        await api("PUT",`/devices/${d.id}`,{blocked:[...set]});
+        d.blocked = [...set];
+      };
+    });
+    main.querySelectorAll('.applist .applimit').forEach(inp=>{
+      inp.onchange = async ()=>{
+        const v = +inp.value||0;
+        const limits = {...d.app_limits};
+        if(v>0) limits[inp.dataset.pkg]=v; else delete limits[inp.dataset.pkg];
+        await api("PUT",`/devices/${d.id}`,{app_limits:limits});
+        d.app_limits = limits;
+        toast("Ліміт збережено");
+      };
+    });
+  }
+
+}
+
+function ringSvg(pct){
+  const r=34, c=2*Math.PI*r;
+  const color = pct>=100 ? "var(--danger)" : "var(--accent)";
+  return `<svg width="84" height="84" viewBox="0 0 84 84" style="flex-shrink:0">
+    <circle cx="42" cy="42" r="${r}" fill="none" stroke="#EFEBE2" stroke-width="8"/>
+    <circle cx="42" cy="42" r="${r}" fill="none" stroke="${color}" stroke-width="8" stroke-linecap="round"
+      stroke-dasharray="${c}" stroke-dashoffset="${c*(1-pct/100)}" transform="rotate(-90 42 42)"/>
+    <text x="42" y="47" text-anchor="middle" font-family="Inter" font-size="16" fill="var(--ink)">${pct}%</text>
+  </svg>`;
+}
+
+function toast(msg){
+  const t = document.createElement("div");
+  t.textContent = msg;
+  t.style.cssText = "position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 18px;border-radius:8px;font-size:13.5px;z-index:999";
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(), 2600);
+}
+
+async function openNetFilter(){
+  STATE.view = {type:"netfilter"};
+  renderShell();
+  const main = document.getElementById("main");
+  main.innerHTML = `<div class="muted">Завантаження…</div>`;
+  const devices = await Promise.all(STATE.devices.map(x=>api("GET",`/devices/${x.id}`)));
+  renderNetFilter(devices);
+}
+
+function renderNetFilter(devices){
+  const main = document.getElementById("main");
+  main.innerHTML = `
+    <div class="pagehead"><h1>Фільтр сайтів</h1></div>
+    <p class="muted" style="margin-top:-14px;margin-bottom:22px">
+      Працює як локальний VPN на рівні DNS — блокує сайт незалежно від того, якою програмою його відкрили (браузер, інший додаток тощо).
+      Не діє на Chrome із увімкненим «безпечним DNS» — там варто додатково вимкнути цю опцію в налаштуваннях Chrome на пристрої.
+      На пристрої потрібно один раз підтвердити системний запит дозволу (пункт 4 у додатку) — без цього перемикач нижче не матиме ефекту.
+    </p>
+    ${devices.map(d=>`
+      <div class="card">
+        <div class="cardtitle">${e(d.name)}</div>
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+          <label class="switch" title="Мережевий фільтр">
+            <input type="checkbox" id="nf_${d.id}" ${d.net_filter_enabled?"checked":""}>
+            <span class="strack"></span><span class="sknob"></span>
+          </label>
+          <span id="nflbl_${d.id}">${d.net_filter_enabled?"Фільтр увімкнено":"Фільтр вимкнено"}</span>
+        </div>
+        <div class="muted" style="font-size:12.5px;margin-bottom:14px">
+          ${d.vpn_consent ? '✅ дозвіл на VPN надано' : '❌ дозвіл на VPN НЕ надано — на пристрої виконайте пункт 4 у додатку'}
+          · ${d.net_filter_running ? '✅ фільтр зараз активний на пристрої' : '⚪ фільтр зараз не запущений на пристрої'}
+          ${d.net_filter_error ? `<br>⚠ ${e(d.net_filter_error)}` : ''}
+        </div>
+        <div class="field">
+          <label>Заблоковані домени</label>
+          <div id="preset_${d.id}" style="margin-bottom:6px"></div>
+          <div id="dom_${d.id}"></div>
+        </div>
+      </div>`).join("") || `<div class="empty"><h2>Пристроїв ще немає</h2></div>`}
+  `;
+  devices.forEach(d=>{
+    document.getElementById(`nf_${d.id}`).onchange = async (ev)=>{
+      await api("PUT",`/devices/${d.id}`,{net_filter_enabled: ev.target.checked});
+      document.getElementById(`nflbl_${d.id}`).textContent = ev.target.checked ? "Фільтр увімкнено" : "Фільтр вимкнено";
+      toast("Застосується протягом ~20с");
+    };
+    const chips = chipInput(document.getElementById(`dom_${d.id}`), d.blocked_domains, []);
+    const save = async ()=> api("PUT",`/devices/${d.id}`,{blocked_domains: chips.get()});
+    document.getElementById(`dom_${d.id}`).addEventListener("keydown", ev=>{ if(ev.key==="Enter") setTimeout(save,0); });
+    document.getElementById(`dom_${d.id}`).addEventListener("click", ev=>{ if(ev.target.tagName==="BUTTON") setTimeout(save,0); });
+    presetButtons(document.getElementById(`preset_${d.id}`), chips, save);
+  });
+}
+
+async function openUpdate(){
+  STATE.view = {type:"update"};
+  renderShell();
+  const main = document.getElementById("main");
+  main.innerHTML = `<div class="muted">Завантаження…</div>`;
+  const info = await api("GET","/app-release");
+  main.innerHTML = `
+    <div class="pagehead"><h1>Оновлення додатку</h1></div>
+    <p class="muted" style="margin-top:-14px;margin-bottom:22px">Завантажте новий APK (зібраний на GitHub, див. README) — пристрої самі підтягнуть і встановлять оновлення протягом ~20 секунд після наступної синхронізації. Без режиму власника пристрою Android попросить дитину один раз торкнутися «Встановити».</p>
+    <div class="card">
+      <div class="cardtitle">Поточна версія на сервері</div>
+      ${info.version_code ? `<div>Версія ${e(info.version_name)} (код ${info.version_code})</div>` : `<div class="muted">Ще не завантажено жодної версії</div>`}
+    </div>
+    <div class="card">
+      <div class="cardtitle">Завантажити новий APK</div>
+      <div class="field"><label>Код версії (versionCode з build.gradle.kts, завжди більший за попередній)</label><input type="number" id="uvc" min="1"></div>
+      <div class="field"><label>Назва версії (versionName, для людей)</label><input type="text" id="uvn" placeholder="1.2"></div>
+      <div class="field"><label>Файл .apk</label><input type="file" id="ufile" accept=".apk"></div>
+      <button class="btn primary" id="uupload">Завантажити на сервер</button>
+    </div>
+  `;
+  document.getElementById("uupload").onclick = async ()=>{
+    const vc = document.getElementById("uvc").value, vn = document.getElementById("uvn").value.trim();
+    const file = document.getElementById("ufile").files[0];
+    if(!vc || !vn || !file){ toast("Заповніть усі поля"); return; }
+    const fd = new FormData();
+    fd.append("version_code", vc); fd.append("version_name", vn); fd.append("file", file);
+    const r = await fetch("/api/app-release", {method:"POST", headers:{"X-Admin-Key":KEY}, body: fd});
+    if(r.ok){ toast("Завантажено"); openUpdate(); } else { toast("Помилка завантаження"); }
+  };
+}
+
+function openTemplates(){
+  STATE.view = {type:"templates"};
+  renderShell();
+  renderTemplates();
+}
+
+function renderTemplates(){
+  const main = document.getElementById("main");
+  main.innerHTML = `
+    <div class="pagehead"><h1>Шаблони доступу</h1></div>
+    <p class="muted" style="margin-top:-14px;margin-bottom:22px">Шаблон описує денний ліміт часу, тихі години та заблоковані додатки. Призначте його пристрою на сторінці пристрою.</p>
+    <button class="btn primary" id="newtpl">+ Новий шаблон</button>
+    <div class="card" style="padding:4px 24px" id="tpls"></div>
+  `;
+  document.getElementById("newtpl").onclick = async ()=>{
+    await api("POST","/templates",{name:"Новий шаблон",policy:{}});
+    STATE.templates = await api("GET","/templates"); renderTemplates();
+  };
+  const box = document.getElementById("tpls");
+  box.innerHTML = STATE.templates.map(t=>templateRow(t)).join("") || `<div class="empty"><h2>Шаблонів ще немає</h2><div class="muted">Створіть перший, щоб призначати його пристроям.</div></div>`;
+  STATE.templates.forEach(t=> wireTemplateRow(t));
+}
+
+function templateRow(t){
+  return `<div class="tpl" id="tpl${t.id}">
+    <div class="tplhead" data-id="${t.id}">
+      <svg class="chev" width="14" height="14" viewBox="0 0 16 16"><path d="M5 2l7 6-7 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <input type="text" value="${e(t.name)}" data-id="${t.id}" class="tname">
+    </div>
+    <div class="tplbody" id="tplbody${t.id}"></div>
+  </div>`;
+}
+
+function wireTemplateRow(t){
+  const head = document.querySelector(`#tpl${t.id} .tplhead`);
+  const wrap = document.querySelector(`#tpl${t.id}`);
+  const nameInput = document.querySelector(`#tpl${t.id} .tname`);
+  let built = false;
+  head.addEventListener("click", ev=>{
+    if(ev.target===nameInput) return;
+    wrap.classList.toggle("open");
+    if(wrap.classList.contains("open") && !built){ buildTemplateForm(t); built = true; }
+  });
+  nameInput.addEventListener("click", ev=> ev.stopPropagation());
+  nameInput.addEventListener("change", async ()=>{ await api("PUT",`/templates/${t.id}`,{name:nameInput.value, policy:t.policy}); t.name=nameInput.value; });
+}
+
+function buildTemplateForm(t){
+  const p = t.policy||{};
+  const body = document.getElementById(`tplbody${t.id}`);
+  body.innerHTML = `
+    <div class="field">
+      <label>Денний ліміт часу в додатках (0 = без обмеження)</label>
+      <input type="number" min="0" id="f_daily_${t.id}" value="${p.daily_limit||0}">
+      <div class="hint" id="f_dailyhint_${t.id}"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Тихі години — початок</label><input type="time" id="f_qs_${t.id}" value="${p.quiet_start||''}"></div>
+      <div class="field"><label>Тихі години — кінець</label><input type="time" id="f_qe_${t.id}" value="${p.quiet_end||''}"></div>
+    </div>
+    <div class="field">
+      <label>Додатки, дозволені під час тихих годин (напр. дзвінки)</label>
+      <div id="f_qa_${t.id}"></div>
+    </div>
+    <div class="field">
+      <label>Заблоковані додатки завжди</label>
+      <div id="f_bl_${t.id}"></div>
+    </div>
+    <div class="field">
+      <label>Заблоковані домени (базовий список для цього шаблону)</label>
+      <div id="f_dompreset_${t.id}" style="margin-bottom:6px"></div>
+      <div id="f_dom_${t.id}"></div>
+    </div>
+    <div class="field">
+      <label>Ліміт часу для окремих додатків</label>
+      <div id="f_limits_${t.id}"></div>
+      <button type="button" class="btn ghost" id="addlimit_${t.id}">+ Додати додаток</button>
+    </div>
+    <button class="btn primary" id="save_${t.id}">Зберегти шаблон</button>
+    <button class="btn danger" id="del_${t.id}">Видалити шаблон</button>
+  `;
+  const dailyInput = document.getElementById(`f_daily_${t.id}`);
+  const dailyHint = document.getElementById(`f_dailyhint_${t.id}`);
+  const refreshHint = ()=>{ const v=+dailyInput.value||0; dailyHint.textContent = v ? "= "+hhmm(v) : "без обмеження часу на день"; };
+  dailyInput.oninput = refreshHint; refreshHint();
+
+  const qa = chipInput(document.getElementById(`f_qa_${t.id}`), p.quiet_allowed||[], STATE.knownApps);
+  const bl = chipInput(document.getElementById(`f_bl_${t.id}`), p.blocked||[], STATE.knownApps);
+  const dom = chipInput(document.getElementById(`f_dom_${t.id}`), p.blocked_domains||[], []);
+  presetButtons(document.getElementById(`f_dompreset_${t.id}`), dom, ()=>{});
+
+  const limitsDiv = document.getElementById(`f_limits_${t.id}`);
+  let limitRows = Object.entries(p.app_limits||{}).map(([pkg,min])=>({pkg,min}));
+  function appLabel(pkg){ const f=STATE.knownApps.find(a=>a.pkg===pkg); return f?f.label:pkg; }
+  function drawLimits(){
+    limitsDiv.innerHTML = limitRows.map((r,i)=>`
+      <div class="limitrow">
+        <input type="text" list="dl_${t.id}" placeholder="додаток" value="${e(appLabel(r.pkg))}" data-i="${i}" class="lpkg">
+        <input type="number" min="0" value="${r.min}" data-i="${i}" class="lmin"> хв/день
+        <button type="button" class="btn ghost" data-i="${i}" style="margin:0">×</button>
+      </div>`).join("") + `<datalist id="dl_${t.id}">${STATE.knownApps.map(a=>`<option value="${e(a.label)}" data-pkg="${e(a.pkg)}">`).join("")}</datalist>`;
+    limitsDiv.querySelectorAll(".lpkg").forEach(inp=> inp.onchange = ()=>{
+      const match = STATE.knownApps.find(a=>a.label.toLowerCase()===inp.value.trim().toLowerCase());
+      limitRows[+inp.dataset.i].pkg = match ? match.pkg : inp.value.trim();
+    });
+    limitsDiv.querySelectorAll(".lmin").forEach(inp=> inp.onchange = ()=>{ limitRows[+inp.dataset.i].min = +inp.value||0; });
+    limitsDiv.querySelectorAll("button").forEach(b=> b.onclick = ()=>{ limitRows.splice(+b.dataset.i,1); drawLimits(); });
+  }
+  drawLimits();
+  document.getElementById(`addlimit_${t.id}`).onclick = ()=>{ limitRows.push({pkg:"",min:30}); drawLimits(); };
+
+  document.getElementById(`save_${t.id}`).onclick = async ()=>{
+    const policy = {};
+    const daily = +dailyInput.value||0; if(daily) policy.daily_limit = daily;
+    const qs = document.getElementById(`f_qs_${t.id}`).value, qe = document.getElementById(`f_qe_${t.id}`).value;
+    if(qs && qe){ policy.quiet_start=qs; policy.quiet_end=qe; }
+    const qaV = qa.get(); if(qaV.length) policy.quiet_allowed = qaV;
+    const blV = bl.get(); if(blV.length) policy.blocked = blV;
+    const domV = dom.get(); if(domV.length) policy.blocked_domains = domV;
+    const limits = {}; limitRows.forEach(r=>{ if(r.pkg) limits[r.pkg]=r.min; });
+    if(Object.keys(limits).length) policy.app_limits = limits;
+    await api("PUT",`/templates/${t.id}`,{name:t.name, policy});
+    t.policy = policy;
+    toast("Шаблон збережено");
+  };
+  document.getElementById(`del_${t.id}`).onclick = async ()=>{
+    if(await confirmDialog("Видалити шаблон?","Пристрої, які його використовують, залишаться без шаблону.")){
+      await api("DELETE",`/templates/${t.id}`);
+      STATE.templates = STATE.templates.filter(x=>x.id!==t.id);
+      renderTemplates();
+    }
+  };
+}
+
+boot();
+</script>
+</body>
+</html>

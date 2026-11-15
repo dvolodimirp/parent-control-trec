@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">System Services</string>
+    <string name="a11y_desc">Системна служба синхронізації.</string>
+</resources>
